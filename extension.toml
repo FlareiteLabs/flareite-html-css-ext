@@ -1,18 +1,18 @@
 # A language-only extension: HTML, CSS and SVG highlighting from Tree-sitter
 # grammars compiled to WebAssembly, and the language servers from
 # vscode-langservers-extracted. No code, so no entrypoint. See
-# docs/extensions.md#languages.
-id = "ferrite.html-css"
+# Flareite's docs/extensions.md#languages.
+id = "flareite.html-css"
 name = "HTML & CSS"
 version = "0.1.0"
 description = "HTML, CSS and SVG: highlighting (with CSS and JavaScript inside HTML and SVG) and language servers."
-author = "Ferrite"
+author = "Flareite"
 api_version = "1"
 
 [engines]
-ferrite = ">=0.1.0"
+flareite = ">=0.1.0"
 
-# Ferrite starts the servers below only once you allow this.
+# Flareite starts the servers below only once you allow this.
 [permissions]
 language_servers = true
 
@@ -53,7 +53,7 @@ folds = "queries/svg/folds.scm"
 injections = "queries/svg/injections.scm"
 block_comment = ["<!--", "-->"]
 
-# `npm install -g vscode-langservers-extracted` provides both servers. Ferrite
+# `npm install -g vscode-langservers-extracted` provides both servers. Flareite
 # looks for them on the PATH and shows "not installed" in the status bar if
 # they're missing; highlighting works either way.
 [[language_servers]]
