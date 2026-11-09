@@ -1,13 +1,14 @@
-# A language-only extension: HTML, CSS and SVG highlighting from Tree-sitter
-# grammars compiled to WebAssembly, and the language servers from
-# vscode-langservers-extracted. No code, so no entrypoint. See
-# Flareite's docs/extensions.md#languages.
+# HTML, CSS and SVG highlighting from Tree-sitter grammars compiled to
+# WebAssembly, the language servers from vscode-langservers-extracted (see
+# Flareite's docs/extensions.md#languages), and a live preview of HTML
+# files beside their editor (src/lib.rs: a layout, API 1.15).
 id = "flareite.html-css"
 name = "HTML & CSS"
-version = "0.1.0"
-description = "HTML, CSS and SVG: highlighting (with CSS and JavaScript inside HTML and SVG) and language servers."
+version = "0.2.0"
+description = "HTML, CSS and SVG: highlighting (with CSS and JavaScript inside HTML and SVG), language servers, and a live preview of HTML files."
 author = "Flareite"
 api_version = "1"
+entrypoint = "target/wasm32-unknown-unknown/release/html_css.wasm"
 
 [engines]
 flareite = ">=0.1.0"
@@ -15,6 +16,36 @@ flareite = ">=0.1.0"
 # Flareite starts the servers below only once you allow this.
 [permissions]
 language_servers = true
+
+[build]
+command = "cargo"
+args = ["build", "--release"]
+watch = ["src", "Cargo.toml"]
+
+[[commands]]
+id = "flareite.html-css.preview"
+title = "Show an HTML Page or Preview Tab"
+hidden = true
+
+# An HTML file's editor with the page beside it, as it's edited. Chosen with
+# the button on an HTML file's tab, or View: Reopen Editor With...
+[[layouts]]
+id = "preview"
+title = "HTML Preview"
+command = "flareite.html-css.preview"
+patterns = ["*.html", "*.htm", "*.xhtml"]
+priority = "option"
+icon = "preview"
+
+# An HTML file's page by itself, in a tab of its own, as it's edited (in
+# any tab). Chosen the same ways.
+[[layouts]]
+id = "page"
+title = "HTML Page"
+command = "flareite.html-css.preview"
+patterns = ["*.html", "*.htm", "*.xhtml"]
+priority = "option"
+icon = "eye"
 
 [[languages]]
 # The id language servers, settings, and injections use.
