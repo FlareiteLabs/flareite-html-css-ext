@@ -1,4 +1,4 @@
-//! HTML & CSS's code: HTML files shown as web pages, as layouts (API 1.15).
+//! HTML & CSS's code: HTML files shown as web pages, as layouts.
 //!
 //! Both layouts are for `*.html`, `*.htm`, and `*.xhtml` files, chosen with
 //! their buttons on the file's tab or **View: Reopen Editor With…**:
@@ -14,26 +14,22 @@
 //! the network only if this extension is allowed to. Pages of files are
 //! shown only in a trusted folder.
 //!
-//! It also types closing tags in HTML documents (API 1.19, see [`tags`]):
+//! It also types closing tags in HTML documents (see [`tags`]):
 //! `</div>` after `<div>`, and the rest of `</div>` after `</`.
 
 mod tags;
 
+use flareite_extension_api::events::Event;
+use flareite_extension_api::language_features::{AutoInsertRequest, Insertion};
 use flareite_extension_api::layouts::{
-  self, Direction, EditorPane, FillReason, Layout, LayoutNode, LayoutTab, NodeKind, Pane,
+  self, Direction, EditorPane, FillReason, FillRequest, Layout, LayoutNode, NodeKind, Pane,
   PaneContent, PaneHeader,
 };
-use flareite_extension_api::types::{
-  Activation, CommandContext, DocumentChange, DocumentId, DocumentInfo, LogLevel, Position, Range,
-};
-use flareite_extension_api::{Guest, export_extension, host, language_features};
+use flareite_extension_api::types::{Activation, LogLevel, Position, Range};
+use flareite_extension_api::{Extension, host, register};
 
-/// The command that fills both layouts' tabs in.
-const FILL: &str = "flareite.html-css.preview";
 /// The layout of the page by itself.
 const PAGE: &str = "page";
-/// The command that answers what to insert as `>` or `/` is typed.
-const AUTO_INSERT: &str = "flareite.html-css.autoInsert";
 
 fn file_name(path: &str) -> &str {
   path.rsplit(['/', '\\']).next().unwrap_or(path)
@@ -111,17 +107,11 @@ fn page(path: &str) -> Layout {
 }
 
 /// Fills a tab in: its key is the file's path.
-fn fill() {
-  let Some(request) = layouts::filling() else {
-    return;
-  };
+fn fill(request: FillRequest) {
   if !matches!(request.reason, FillReason::Opened | FillReason::Restored) {
     return;
   }
-  let tab = LayoutTab {
-    layout: request.tab.layout,
-    key: request.tab.key,
-  };
+  let tab = request.tab;
   let layout = if tab.layout == PAGE {
     page(&tab.key)
   } else {
@@ -135,24 +125,17 @@ fn fill() {
   }
 }
 
-/// Answers an auto-insert request with a closing tag, if one is due.
-fn auto_insert() {
-  let Some(request) = language_features::inserting() else {
-    return;
-  };
-  let Some(trigger) = request.trigger.chars().next() else {
-    return;
-  };
+/// A closing tag to insert as `>` or `/` is typed, if one is due.
+fn auto_insert(request: &AutoInsertRequest) -> Option<Insertion> {
+  let trigger = request.trigger.chars().next()?;
   let range = Range {
     start: Position { line: 0, column: 0 },
     end: request.position,
   };
   // The text up to the cursor, as it was when the trigger was typed.
-  let Ok(before) = host::read_range(request.document, range) else {
-    return;
-  };
+  let before = host::read_range(request.document, range).ok()?;
   if before.version != request.version {
-    return;
+    return None;
   }
   // SVG is XML; HTML is the other language this inserts for.
   let svg = host::document(request.document)
@@ -162,42 +145,37 @@ fn auto_insert() {
   } else {
     tags::Dialect::Html
   };
-  if let Some((text, cursor)) = tags::auto_insert(&before.text, trigger, dialect)
-    && let Err(problem) = language_features::set_insert(&text, cursor as u32)
-  {
-    host::log(
-      LogLevel::Error,
-      &format!("can't insert a closing tag: {problem:?}"),
-    );
-  }
+  let (text, cursor) = tags::auto_insert(&before.text, trigger, dialect)?;
+  Some(Insertion {
+    text,
+    cursor: u32::try_from(cursor).ok()?,
+  })
 }
 
 struct HtmlCss;
 
-impl Guest for HtmlCss {
-  fn activate(_: Activation) -> Result<(), String> {
-    Ok(())
+impl Extension for HtmlCss {
+  fn activate(_: Activation) -> Result<Self, String> {
+    Ok(HtmlCss)
   }
 
-  fn deactivate() {}
-
-  fn run_command(command: String, _: CommandContext) -> Result<(), String> {
-    match command.as_str() {
-      FILL => fill(),
-      AUTO_INSERT => auto_insert(),
-      other => return Err(format!("unknown command {other}")),
+  /// Fills both layouts' tabs in.
+  fn handle_event(&mut self, event: Event) -> Result<(), String> {
+    if let Event::LayoutFill(request) = event {
+      fill(request);
     }
     Ok(())
   }
 
-  fn document_opened(_: DocumentInfo) {}
-
-  fn document_changed(_: DocumentChange) {}
-
-  fn document_closed(_: DocumentId) {}
+  fn provide_auto_insert(
+    &mut self,
+    request: AutoInsertRequest,
+  ) -> Result<Option<Insertion>, String> {
+    Ok(auto_insert(&request))
+  }
 }
 
-export_extension!(HtmlCss);
+register!(HtmlCss);
 
 #[cfg(test)]
 mod tests {

@@ -1,14 +1,14 @@
 # HTML, CSS and SVG highlighting from Tree-sitter grammars compiled to
 # WebAssembly, the language servers from vscode-langservers-extracted (see
 # Flareite's docs/extensions.md#languages), and a live preview of HTML
-# files beside their editor (src/lib.rs: a layout, API 1.15), and HTML and SVG
-# tags closed as they're typed (src/tags.rs, API 1.19).
+# files beside their editor (src/lib.rs: a layout), and HTML and SVG
+# tags closed as they're typed (src/tags.rs).
 id = "flareite.html-css"
 name = "HTML & CSS"
-version = "0.3.0"
+version = "1.0.0"
 description = "HTML, CSS and SVG: highlighting (with CSS and JavaScript inside HTML and SVG), language servers, a live preview of HTML files, and closing tags typed for you."
 author = "Flareite"
-api_version = "1"
+api_version = "2"
 entrypoint = "target/wasm32-unknown-unknown/release/html_css.wasm"
 # Running before the first tag is typed (in HTML or SVG): starting takes
 # longer than the editor waits for a closing tag.
@@ -28,30 +28,17 @@ command = "cargo"
 args = ["build", "--release"]
 watch = ["src", "Cargo.toml"]
 
-[[commands]]
-id = "flareite.html-css.preview"
-title = "Show an HTML Page or Preview Tab"
-hidden = true
-
-[[commands]]
-id = "flareite.html-css.autoInsert"
-title = "Close a Tag"
-hidden = true
-
 # Closing tags typed for you in HTML and SVG, as in VS Code: `</div>` after
-# the cursor once `<div>` is typed, and the rest of `</div>` once `</` is
-# (API 1.19).
+# the cursor once `<div>` is typed, and the rest of `</div>` once `</` is.
 [[auto_insert_providers]]
 languages = ["html", "svg"]
 trigger_characters = [">", "/"]
-command = "flareite.html-css.autoInsert"
 
 # An HTML file's editor with the page beside it, as it's edited. Chosen with
 # the button on an HTML file's tab, or View: Reopen Editor With...
 [[layouts]]
 id = "preview"
 title = "HTML Preview"
-command = "flareite.html-css.preview"
 patterns = ["*.html", "*.htm", "*.xhtml"]
 priority = "option"
 icon = "preview"
@@ -61,7 +48,6 @@ icon = "preview"
 [[layouts]]
 id = "page"
 title = "HTML Page"
-command = "flareite.html-css.preview"
 patterns = ["*.html", "*.htm", "*.xhtml"]
 priority = "option"
 icon = "eye"
