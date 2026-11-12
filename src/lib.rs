@@ -13,20 +13,27 @@
 //! scrolled. Its scripts run, sandboxed as extensions' pages are; it reaches
 //! the network only if this extension is allowed to. Pages of files are
 //! shown only in a trusted folder.
+//!
+//! It also types closing tags in HTML documents (API 1.19, see [`tags`]):
+//! `</div>` after `<div>`, and the rest of `</div>` after `</`.
+
+mod tags;
 
 use flareite_extension_api::layouts::{
   self, Direction, EditorPane, FillReason, Layout, LayoutNode, LayoutTab, NodeKind, Pane,
   PaneContent, PaneHeader,
 };
 use flareite_extension_api::types::{
-  Activation, CommandContext, DocumentChange, DocumentId, DocumentInfo, LogLevel,
+  Activation, CommandContext, DocumentChange, DocumentId, DocumentInfo, LogLevel, Position, Range,
 };
-use flareite_extension_api::{Guest, export_extension, host};
+use flareite_extension_api::{Guest, export_extension, host, language_features};
 
 /// The command that fills both layouts' tabs in.
 const FILL: &str = "flareite.html-css.preview";
 /// The layout of the page by itself.
 const PAGE: &str = "page";
+/// The command that answers what to insert as `>` or `/` is typed.
+const AUTO_INSERT: &str = "flareite.html-css.autoInsert";
 
 fn file_name(path: &str) -> &str {
   path.rsplit(['/', '\\']).next().unwrap_or(path)
@@ -128,6 +135,43 @@ fn fill() {
   }
 }
 
+/// Answers an auto-insert request with a closing tag, if one is due.
+fn auto_insert() {
+  let Some(request) = language_features::inserting() else {
+    return;
+  };
+  let Some(trigger) = request.trigger.chars().next() else {
+    return;
+  };
+  let range = Range {
+    start: Position { line: 0, column: 0 },
+    end: request.position,
+  };
+  // The text up to the cursor, as it was when the trigger was typed.
+  let Ok(before) = host::read_range(request.document, range) else {
+    return;
+  };
+  if before.version != request.version {
+    return;
+  }
+  // SVG is XML; HTML is the other language this inserts for.
+  let svg = host::document(request.document)
+    .is_ok_and(|document| document.language.as_deref() == Some("svg"));
+  let dialect = if svg {
+    tags::Dialect::Xml
+  } else {
+    tags::Dialect::Html
+  };
+  if let Some((text, cursor)) = tags::auto_insert(&before.text, trigger, dialect)
+    && let Err(problem) = language_features::set_insert(&text, cursor as u32)
+  {
+    host::log(
+      LogLevel::Error,
+      &format!("can't insert a closing tag: {problem:?}"),
+    );
+  }
+}
+
 struct HtmlCss;
 
 impl Guest for HtmlCss {
@@ -140,6 +184,7 @@ impl Guest for HtmlCss {
   fn run_command(command: String, _: CommandContext) -> Result<(), String> {
     match command.as_str() {
       FILL => fill(),
+      AUTO_INSERT => auto_insert(),
       other => return Err(format!("unknown command {other}")),
     }
     Ok(())

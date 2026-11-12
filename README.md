@@ -1,7 +1,17 @@
 # HTML & CSS
 
 HTML, CSS, and SVG for Flareite: highlighting from Tree-sitter grammars (with CSS and JavaScript
-inside HTML and SVG), the HTML and CSS language servers, and a live preview of HTML files.
+inside HTML and SVG), the HTML and CSS language servers, a live preview of HTML files, and HTML
+and SVG tags closed as you type them.
+
+## Closing tags
+
+In HTML, typing the `>` of a start tag adds its end tag after the cursor: `<div class="box">`
+gets `</div>`. Typing `</` finishes the innermost open element's end tag. Void elements (`<br>`,
+`<img>`) and self-closing tags (`<x />`) get none. Nothing is added inside comments or attribute
+values, and in a `<script>` or `<style>` only its own end tag is. SVG is closed as XML is: names
+keep their case, and no element is void. Undo takes back just the added tag. Reading the text
+before the cursor is why the extension asks to read documents.
 
 ## Preview and page
 
@@ -37,9 +47,10 @@ status bar if they're missing; highlighting works either way.
 
 ## Building
 
-The preview is a small Rust extension (`src/lib.rs`), built against the extension API in the
-editor's repository, checked out beside this one as `editor`:
+The preview and closing tags are a small Rust extension (`src/lib.rs`, `src/tags.rs`), built
+against the extension API in the editor's repository, checked out beside this one as `editor`:
 
 ```sh
 cargo build --release
+cargo test --target x86_64-pc-windows-msvc   # or your platform's target: the tests run natively
 ```

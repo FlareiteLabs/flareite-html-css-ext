@@ -1,21 +1,27 @@
 # HTML, CSS and SVG highlighting from Tree-sitter grammars compiled to
 # WebAssembly, the language servers from vscode-langservers-extracted (see
 # Flareite's docs/extensions.md#languages), and a live preview of HTML
-# files beside their editor (src/lib.rs: a layout, API 1.15).
+# files beside their editor (src/lib.rs: a layout, API 1.15), and HTML and SVG
+# tags closed as they're typed (src/tags.rs, API 1.19).
 id = "flareite.html-css"
 name = "HTML & CSS"
-version = "0.2.0"
-description = "HTML, CSS and SVG: highlighting (with CSS and JavaScript inside HTML and SVG), language servers, and a live preview of HTML files."
+version = "0.3.0"
+description = "HTML, CSS and SVG: highlighting (with CSS and JavaScript inside HTML and SVG), language servers, a live preview of HTML files, and closing tags typed for you."
 author = "Flareite"
 api_version = "1"
 entrypoint = "target/wasm32-unknown-unknown/release/html_css.wasm"
+# Running before the first tag is typed (in HTML or SVG): starting takes
+# longer than the editor waits for a closing tag.
+activation = ["on-language:html", "on-language:svg"]
 
 [engines]
 flareite = ">=0.1.0"
 
 # Flareite starts the servers below only once you allow this.
+# documents_read: reading the text before the cursor, to close tags.
 [permissions]
 language_servers = true
+documents_read = true
 
 [build]
 command = "cargo"
@@ -26,6 +32,19 @@ watch = ["src", "Cargo.toml"]
 id = "flareite.html-css.preview"
 title = "Show an HTML Page or Preview Tab"
 hidden = true
+
+[[commands]]
+id = "flareite.html-css.autoInsert"
+title = "Close a Tag"
+hidden = true
+
+# Closing tags typed for you in HTML and SVG, as in VS Code: `</div>` after
+# the cursor once `<div>` is typed, and the rest of `</div>` once `</` is
+# (API 1.19).
+[[auto_insert_providers]]
+languages = ["html", "svg"]
+trigger_characters = [">", "/"]
+command = "flareite.html-css.autoInsert"
 
 # An HTML file's editor with the page beside it, as it's edited. Chosen with
 # the button on an HTML file's tab, or View: Reopen Editor With...
@@ -60,6 +79,60 @@ folds = "queries/html/folds.scm"
 injections = "queries/html/injections.scm"
 # No line comments: Toggle Line Comment wraps lines in a block comment.
 block_comment = ["<!--", "-->"]
+# Brackets and quotes typed in pairs, as in VS Code's language configuration.
+brackets = [["<!--", "-->"], ["{", "}"], ["(", ")"]]
+auto_closing_pairs = [
+  [
+    "{",
+    "}",
+  ],
+  [
+    "[",
+    "]",
+  ],
+  [
+    "(",
+    ")",
+  ],
+  [
+    "'",
+    "'",
+  ],
+  [
+    '"',
+    '"',
+  ],
+  { open = "<!--", close = "-->", not_in = [
+    "string",
+    "comment",
+  ] },
+]
+surrounding_pairs = [
+  [
+    "'",
+    "'",
+  ],
+  [
+    '"',
+    '"',
+  ],
+  [
+    "{",
+    "}",
+  ],
+  [
+    "[",
+    "]",
+  ],
+  [
+    "(",
+    ")",
+  ],
+  [
+    "<",
+    ">",
+  ],
+]
 
 [[languages]]
 id = "css"
@@ -69,6 +142,31 @@ grammar = "grammars/tree-sitter-css.wasm"
 highlights = "queries/css/highlights.scm"
 folds = "queries/css/folds.scm"
 block_comment = ["/*", "*/"]
+# Brackets and quotes typed in pairs, as in VS Code's language configuration.
+brackets = [["{", "}"], ["[", "]"], ["(", ")"]]
+auto_closing_pairs = [
+  { open = "{", close = "}", not_in = [
+    "string",
+    "comment",
+  ] },
+  { open = "[", close = "]", not_in = [
+    "string",
+    "comment",
+  ] },
+  { open = "(", close = ")", not_in = [
+    "string",
+    "comment",
+  ] },
+  { open = '"', close = '"', not_in = [
+    "string",
+    "comment",
+  ] },
+  { open = "'", close = "'", not_in = [
+    "string",
+    "comment",
+  ] },
+]
+surrounding_pairs = [["{", "}"], ["[", "]"], ["(", ")"], ['"', '"'], ["'", "'"]]
 
 [[languages]]
 id = "svg"
@@ -83,6 +181,60 @@ folds = "queries/svg/folds.scm"
 # Highlights <style> as CSS and <script> as JavaScript.
 injections = "queries/svg/injections.scm"
 block_comment = ["<!--", "-->"]
+# Brackets and quotes typed in pairs, as in VS Code's language configuration.
+brackets = [["<!--", "-->"], ["{", "}"], ["(", ")"]]
+auto_closing_pairs = [
+  [
+    "{",
+    "}",
+  ],
+  [
+    "[",
+    "]",
+  ],
+  [
+    "(",
+    ")",
+  ],
+  { open = "'", close = "'", not_in = [
+    "string",
+    "comment",
+  ] },
+  { open = '"', close = '"', not_in = [
+    "string",
+    "comment",
+  ] },
+  { open = "<!--", close = "-->", not_in = [
+    "string",
+    "comment",
+  ] },
+]
+surrounding_pairs = [
+  [
+    "{",
+    "}",
+  ],
+  [
+    "[",
+    "]",
+  ],
+  [
+    "(",
+    ")",
+  ],
+  [
+    "'",
+    "'",
+  ],
+  [
+    '"',
+    '"',
+  ],
+  [
+    "<",
+    ">",
+  ],
+]
 
 # `npm install -g vscode-langservers-extracted` provides both servers. Flareite
 # looks for them on the PATH and shows "not installed" in the status bar if
