@@ -8,6 +8,7 @@ name = "HTML & CSS"
 version = "1.0.0"
 description = "HTML, CSS and SVG: highlighting (with CSS and JavaScript inside HTML and SVG), language servers, a live preview of HTML files, and closing tags typed for you."
 author = "Flareite"
+icon = "icon.svg"
 api_version = "2"
 entrypoint = "target/wasm32-unknown-unknown/release/html_css.wasm"
 # Running before the first tag is typed (in HTML or SVG): starting takes
